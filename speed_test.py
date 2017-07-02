@@ -61,9 +61,10 @@ class TwitterThread(threading.Thread):
         self.thread_id = thread_id
         self.name = name
         self.apiData = config['twitterAPI']
-        auth = tweepy.OAuthHandler(apiData['apiKey'], apiData['apiSecret'])
-        auth.set_access_token(apiData['accessToken'],
-                              apiData['accessTokenSecret'])
+        auth = tweepy.OAuthHandler(
+            self.apiData['apiKey'], self.apiData['apiSecret'])
+        auth.set_access_token(self.apiData['accessToken'],
+                              self.apiData['accessTokenSecret'])
         self.twitterAPI = tweepy.API(auth)
 
     def run(self):
@@ -78,9 +79,9 @@ class TwitterThread(threading.Thread):
                 print('Ping: %s' % results['ping'])
                 download = round(results['download'] / (2**20), 2)
                 upload = round(results['upload'] / (2**20), 2)
-                content = ("@bt_uk! I'm meant to get 52 mb/s down and 10mb/s"
-                           " up.I got %smb/s down and %smb/s up!") % (download,
-                                                                      upload)
+                content = ("%s! I'm meant to get 52 mb/s down and 10mb/s"
+                           " up.I got %smb/s down and %smb/s up!"
+                           % (config['ispTwitter'], download, upload))
                 try:
                     self.twitterAPI.update_status(content)
                 except Exception as e:
