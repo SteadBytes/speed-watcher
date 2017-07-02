@@ -9,50 +9,75 @@ import tweepy
 
 exitFlag = 0
 tweetFlag = 0
-
 config = json.load(open('config.json'))
+tweet_data_queue = queue.Queue()
+
+
+def main():
+    test_thread = SpeedTestThread(1, "SpeedTestThread1")
+    tweet_thread = TwitterThread(2, "TwitterThread1")
+    test_thread.start()
+    tweet_thread.start()
+
+
+class Logger(object):
+    def __init__(self, filepath):
+        self.filepath = filepath
+
+    def logCsv(self, data):
+        print("Logging data...")
+        with open(self.filepath, 'a') as f:
+            writer = csv.DictWriter(f, fieldnames=data.keys())
+            if os.stat(self.filepath).st_size == 0:
+                writer.writeheader()
+            writer.writerow(data)
+        print("Done -> '%s'" % self.filepath)
 
 
 class SpeedTestThread(threading.Thread):
     def __init__(self, thread_id, name):
         threading.Thread.__init__(self)
         self.thread_id = thread_id
-        self.name = name
         self.targetSpeeds = config['internetSpeeds']
         self.s = speedtest.Speedtest()
-        self.s.get_best_server()
+        self.logger = Logger(config['logFilePath'])
 
     def run(self):
         global exitFlag
         while exitFlag == 0:
             try:
-                # self.s.upload()
-                # self.s.download()
-                # results = self.s.results.dict()
+                # self.getSpeeds()
                 results = json.load(open('results.json'))
             except:
                 print("Could not retrieve speedtest data")
-                self.exit()
+                exitFlag = 1
 
             self.checkSpeeds(results)
+            self.logger.logCsv(results)
 
-            with open('results.csv', 'a') as f:
-                writer = csv.DictWriter(f, fieldnames=results.keys())
-                if os.stat('results.csv').st_size == 0:
-                    writer.writeheader()
-                writer.writerow(results)
-            time.sleep(5)
+            time.sleep(config['testFreq'])
 
         self.exit()
+
+    def getSpeeds(self):
+        self.s.get_best_server()
+        self.s.upload()
+        self.s.download()
+        return self.s.results.dict()
 
     def checkSpeeds(self, results):
         global tweetFlag
         if (results['download'] / (2**20) < self.targetSpeeds['download'] or
             results['upload'] / (2**20) < self.targetSpeeds['upload'] or
                 results['ping'] > self.targetSpeeds['ping']):
-
+            print("Unnaceptable speed results")
             tweetFlag = 1
-            q.put(results)
+            tweet_data_queue.put(results)
+            print("Results queued for tweet")
+
+        print('Download: %s' % results['download'])
+        print('Upload: %s' % results['upload'])
+        print('Ping: %s' % results['ping'])
 
 
 class TwitterThread(threading.Thread):
@@ -72,11 +97,7 @@ class TwitterThread(threading.Thread):
         global tweetFlag
         while True:
             if tweetFlag == 1:
-                results = q.get()
-                print("Unnaceptable speed results:")
-                print('Download: %s' % results['download'])
-                print('Upload: %s' % results['upload'])
-                print('Ping: %s' % results['ping'])
+                results = tweet_data_queue.get()
                 download = round(results['download'] / (2**20), 2)
                 upload = round(results['upload'] / (2**20), 2)
                 content = ("%s! I'm meant to get 52 mb/s down and 10mb/s"
@@ -90,9 +111,5 @@ class TwitterThread(threading.Thread):
                 tweetFlag = 0
 
 
-q = queue.Queue()
-
-test_thread = SpeedTestThread(1, "SpeedTestThread1")
-tweet_thread = TwitterThread(2, "TwitterThread1")
-test_thread.start()
-tweet_thread.start()
+if __name__ == "__main__":
+    main()
