@@ -20,3 +20,7 @@ Unable to retrieve results,Sun Jul  2 15:41:38 2017,[Errno 2] No such file or di
 Unable to retrieve results,Sun Jul  2 15:42:36 2017,[Errno 2] No such file or directory: 'reslts.json'
 Unable to retrieve results,Sun Jul  2 15:42:41 2017,[Errno 2] No such file or directory: 'reslts.json'
 "10 Failed test attemtps, exiting.",Sun Jul  2 15:42:41 2017
+Sun Jul  2 18:15:20 2017,name 'resultsp' is not defined,Unable to retrieve results
+Sun Jul  2 18:15:25 2017,name 'resultsp' is not defined,Unable to retrieve results
+Unable to retrieve results,name 'resultsp' is not defined,Sun Jul  2 18:16:41 2017
+Unable to send tweet,Sun Jul  2 18:17:01 2017,"[{'code': 187, 'message': 'Status is a duplicate.'}]"
