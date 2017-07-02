@@ -1,0 +1,14 @@
+{
+  "twitterAPI" : {
+    "apiKey": "",
+    "apiSecret": "",
+    "access_token":"",
+    "access_token_secret":""
+  },
+  "internetSpeeds": {
+    "upload": "",
+    "download": "",
+    "ping":"",
+  },
+  "ispTwitter": ""
+}
