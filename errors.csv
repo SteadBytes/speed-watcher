@@ -1,0 +1,22 @@
+time,error
+Sun Jul  2 15:22:20 2017,[Errno 2] No such file or directory: 'reults.json'
+[Errno 2] No such file or directory: 'reslts.json',Sun Jul  2 15:24:38 2017,Unable to retrieve results
+Unable to retrieve results,[Errno 2] No such file or directory: 'reslts.json',Sun Jul  2 15:26:51 2017
+[Errno 2] No such file or directory: 'reslts.json',Sun Jul  2 15:27:04 2017,Unable to retrieve results
+[Errno 2] No such file or directory: 'reslts.json',Sun Jul  2 15:28:54 2017,Unable to retrieve results
+Unable to retrieve results,[Errno 2] No such file or directory: 'reslts.json',Sun Jul  2 15:29:38 2017
+[Errno 2] No such file or directory: 'reslts.json',Unable to retrieve results,Sun Jul  2 15:36:40 2017
+Unable to retrieve results,Sun Jul  2 15:40:52 2017,[Errno 2] No such file or directory: 'reslts.json'
+Unable to retrieve results,Sun Jul  2 15:40:57 2017,[Errno 2] No such file or directory: 'reslts.json'
+Unable to retrieve results,Sun Jul  2 15:41:02 2017,[Errno 2] No such file or directory: 'reslts.json'
+Unable to retrieve results,Sun Jul  2 15:41:07 2017,[Errno 2] No such file or directory: 'reslts.json'
+Unable to retrieve results,Sun Jul  2 15:41:12 2017,[Errno 2] No such file or directory: 'reslts.json'
+Unable to retrieve results,Sun Jul  2 15:41:17 2017,[Errno 2] No such file or directory: 'reslts.json'
+Unable to retrieve results,Sun Jul  2 15:41:22 2017,[Errno 2] No such file or directory: 'reslts.json'
+Unable to retrieve results,Sun Jul  2 15:41:27 2017,[Errno 2] No such file or directory: 'reslts.json'
+Unable to retrieve results,Sun Jul  2 15:41:33 2017,[Errno 2] No such file or directory: 'reslts.json'
+Unable to retrieve results,Sun Jul  2 15:41:38 2017,[Errno 2] No such file or directory: 'reslts.json'
+"10 Failed test attemtps, exiting.",Sun Jul  2 15:41:38 2017
+Unable to retrieve results,Sun Jul  2 15:42:36 2017,[Errno 2] No such file or directory: 'reslts.json'
+Unable to retrieve results,Sun Jul  2 15:42:41 2017,[Errno 2] No such file or directory: 'reslts.json'
+"10 Failed test attemtps, exiting.",Sun Jul  2 15:42:41 2017

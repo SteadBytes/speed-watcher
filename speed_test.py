@@ -14,8 +14,9 @@ tweet_data_queue = queue.Queue()
 
 
 def main():
-    test_thread = SpeedTestThread(1, "SpeedTestThread1")
-    tweet_thread = TwitterThread(2, "TwitterThread1")
+    error_logger = Logger(config['errorFilePath'])
+    test_thread = SpeedTestThread(1, "SpeedTestThread1", error_logger)
+    tweet_thread = TwitterThread(2, "TwitterThread1", error_logger)
     test_thread.start()
     tweet_thread.start()
 
@@ -35,29 +36,40 @@ class Logger(object):
 
 
 class SpeedTestThread(threading.Thread):
-    def __init__(self, thread_id, name):
+    def __init__(self, thread_id, name, error_logger):
         threading.Thread.__init__(self)
+        self.name = name
         self.thread_id = thread_id
         self.targetSpeeds = config['internetSpeeds']
         self.s = speedtest.Speedtest()
-        self.logger = Logger(config['logFilePath'])
+        self.dataLogger = Logger(config['logFilePath'])
+        self.error_logger = error_logger
 
     def run(self):
         global exitFlag
+        counter = 0
         while exitFlag == 0:
             try:
-                # self.getSpeeds()
-                results = json.load(open('results.json'))
-            except:
-                print("Could not retrieve speedtest data")
-                exitFlag = 1
-
-            self.checkSpeeds(results)
-            self.logger.logCsv(results)
+                results = self.getSpeeds()
+                # results = json.load(open('results.json'))
+                self.checkSpeeds(results)
+                self.dataLogger.logCsv(results)
+            except Exception as e:
+                counter += 1
+                error = {"time": time.ctime(),
+                         "error": "Unable to retrieve results",
+                         "exception": e}
+                print("Unable to retrieve results")
+                self.error_logger.logCsv(error)
+                if counter >= config['testAttempts']:
+                    exitFlag = 1
+                    error = "10 Failed test attemtps, exiting."
+                    print(error)
+                    error = {"time": time.ctime(),
+                             "error": error}
+                    self.error_logger.logCsv(error)
 
             time.sleep(config['testFreq'])
-
-        self.exit()
 
     def getSpeeds(self):
         self.s.get_best_server()
@@ -81,7 +93,7 @@ class SpeedTestThread(threading.Thread):
 
 
 class TwitterThread(threading.Thread):
-    def __init__(self, thread_id, name):
+    def __init__(self, thread_id, name, error_logger):
         threading.Thread.__init__(self)
         self.thread_id = thread_id
         self.name = name
@@ -91,6 +103,7 @@ class TwitterThread(threading.Thread):
         auth.set_access_token(self.apiData['accessToken'],
                               self.apiData['accessTokenSecret'])
         self.twitterAPI = tweepy.API(auth)
+        self.error_logger = error_logger
 
     def run(self):
         global exitFlag
