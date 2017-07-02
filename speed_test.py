@@ -10,12 +10,15 @@ import tweepy
 exitFlag = 0
 tweetFlag = 0
 
+config = json.load(open('config.json'))
+
 
 class SpeedTestThread(threading.Thread):
     def __init__(self, thread_id, name):
         threading.Thread.__init__(self)
         self.thread_id = thread_id
         self.name = name
+        self.targetSpeeds = config['internetSpeeds']
         self.s = speedtest.Speedtest()
         self.s.get_best_server()
 
@@ -44,7 +47,10 @@ class SpeedTestThread(threading.Thread):
 
     def checkSpeeds(self, results):
         global tweetFlag
-        if results['download'] / (2**20) < 52 or results['upload'] / (2**20) < 10 or results['ping'] > 50:
+        if (results['download'] / (2**20) < self.targetSpeeds['download'] or
+            results['upload'] / (2**20) < self.targetSpeeds['upload'] or
+                results['ping'] > self.targetSpeeds['ping']):
+
             tweetFlag = 1
             q.put(results)
 
@@ -54,10 +60,10 @@ class TwitterThread(threading.Thread):
         threading.Thread.__init__(self)
         self.thread_id = thread_id
         self.name = name
-        auth = tweepy.OAuthHandler(
-            "FkP8BhWvpamAiwLhxNRDT6DA3", "s8KODH4BYjYU7woGjg3OOJde7Z8TOZgvGyHSLnTCDQY6FnIV4d")
-        auth.set_access_token("800628217157599233-tiGxQO22MOwxSL9ggKnbrvQTNiY1DGJ",
-                              "roGyTUcWwVkShRAOCmfyxMswHxhDOxrzf1ywu9Wtzmxey")
+        self.apiData = config['twitterAPI']
+        auth = tweepy.OAuthHandler(apiData['apiKey'], apiData['apiSecret'])
+        auth.set_access_token(apiData['accessToken'],
+                              apiData['accessTokenSecret'])
         self.twitterAPI = tweepy.API(auth)
 
     def run(self):
