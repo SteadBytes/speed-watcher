@@ -108,7 +108,8 @@ class TwitterThread(threading.Thread):
     def run(self):
         global exitFlag
         global tweetFlag
-        while True:
+        counter = 0
+        while exitFlag == 0 and tweetFlag == 1:
             if tweetFlag == 1:
                 results = tweet_data_queue.get()
                 download = round(results['download'] / (2**20), 2)
@@ -119,9 +120,22 @@ class TwitterThread(threading.Thread):
                 try:
                     self.twitterAPI.update_status(content)
                 except Exception as e:
-                    print(e)
-
-                tweetFlag = 0
+                    counter += 1
+                    errorMsg = "Unable to send tweet"
+                    error = {"time": time.ctime(),
+                             "error": errorMsg,
+                             "exception": e}
+                    print(errorMsg)
+                    self.error_logger.logCsv(error)
+                    if counter >= config['testAttempts']:
+                        exitFlag = 1
+                        errorMsg = "10 Failed tweet attempts, exiting."
+                        print(errorMsg)
+                        error = {"time": time.ctime(),
+                                 "error": errorMsg}
+                        self.error_logger.logCsv(error)
+                    if tweet_data_queue.qsize() == 0:
+                        tweetFlag = 0
 
 
 if __name__ == "__main__":
