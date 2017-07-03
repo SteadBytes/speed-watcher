@@ -6,6 +6,7 @@ import os
 import threading
 import queue
 import tweepy
+import random
 
 exitFlag = 0
 tweetFlag = 0
@@ -90,12 +91,12 @@ class TwitterThread(threading.Thread):
             if exitFlag == 1:
                 break
             if tweetFlag == 1:
-                down, up = self.getTweetData()
-                content = ("%s! I'm meant to get 52 mb/s down and 10mb/s"
-                           " up.I got %smb/s down and %smb/s up!"
-                           % (config['ispTwitter'], down, up))
+                tweet = self.getTweet()
+                # content = ("%s! I'm meant to get 52 mb/s down and 10mb/s"
+                #            " up.I got %smb/s down and %smb/s up!"
+                #            % (config['ispTwitter'], down, up))
                 try:
-                    self.twitterAPI.update_status(content)
+                    self.twitterAPI.update_status(tweet)
                     print("Tweet successful")
                 except Exception as e:
                     error = {"time": time.ctime(),
@@ -106,11 +107,12 @@ class TwitterThread(threading.Thread):
                     if tweet_data_queue.qsize() == 0:
                         tweetFlag = 0
 
-    def getTweetData(self):
+    def getTweet(self):
         data = tweet_data_queue.get()
         down = round(data['download'] / (2**20), 2)
         up = round(data['upload'] / (2**20), 2)
-        return (down, up)
+        content = random.choice(config['tweetContent'])
+        return content.format(config['ispTwitter'], down, up)
 
 
 class Logger(object):
