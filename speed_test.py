@@ -21,35 +21,6 @@ def main():
     tweet_thread.start()
 
 
-class Logger(object):
-    def __init__(self, filepath):
-        self.filepath = filepath
-
-    def logCsv(self, data):
-        print("Logging ...")
-        with open(self.filepath, 'a') as f:
-            writer = csv.DictWriter(f, fieldnames=data.keys())
-            if os.stat(self.filepath).st_size == 0:
-                writer.writeheader()
-            writer.writerow(data)
-        print("Done -> '%s'" % self.filepath)
-
-
-class ErrorLogger(Logger):
-    def __init__(self, filepath):
-        Logger.__init__(self, filepath)
-        self.counter = 0
-
-    def logError(self, errorData):
-        global exitFlag
-        if self.counter >= config['testAttempts']:
-            exitFlag = 1
-            errorData['error'] = "10 Failed test attempts, exiting."
-            self.counter = 0
-        print(errorData['error'])
-        self.logCsv(errorData)
-
-
 class SpeedTestThread(threading.Thread):
     def __init__(self, thread_id, name, error_logger):
         threading.Thread.__init__(self)
@@ -119,9 +90,7 @@ class TwitterThread(threading.Thread):
             if exitFlag == 1:
                 break
             if tweetFlag == 1:
-                results = tweet_data_queue.get()
-                down = round(results['download'] / (2**20), 2)
-                up = round(results['upload'] / (2**20), 2)
+                down, up = self.getTweetData()
                 content = ("%s! I'm meant to get 52 mb/s down and 10mb/s"
                            " up.I got %smb/s down and %smb/s up!"
                            % (config['ispTwitter'], down, up))
@@ -136,6 +105,41 @@ class TwitterThread(threading.Thread):
 
                     if tweet_data_queue.qsize() == 0:
                         tweetFlag = 0
+
+    def getTweetData(self):
+        data = tweet_data_queue.get()
+        down = round(data['download'] / (2**20), 2)
+        up = round(data['upload'] / (2**20), 2)
+        return (down, up)
+
+
+class Logger(object):
+    def __init__(self, filepath):
+        self.filepath = filepath
+
+    def logCsv(self, data):
+        print("Logging ...")
+        with open(self.filepath, 'a') as f:
+            writer = csv.DictWriter(f, fieldnames=data.keys())
+            if os.stat(self.filepath).st_size == 0:
+                writer.writeheader()
+            writer.writerow(data)
+        print("Done -> '%s'" % self.filepath)
+
+
+class ErrorLogger(Logger):
+    def __init__(self, filepath):
+        Logger.__init__(self, filepath)
+        self.counter = 0
+
+    def logError(self, errorData):
+        global exitFlag
+        if self.counter >= config['testAttempts']:
+            exitFlag = 1
+            errorData['error'] = "10 Failed test attempts, exiting."
+            self.counter = 0
+        print(errorData['error'])
+        self.logCsv(errorData)
 
 
 if __name__ == "__main__":
