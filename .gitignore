@@ -1,5 +1,5 @@
 env/
 results.json
-outline.md
 results.csv
 config.json
+errors.csv
