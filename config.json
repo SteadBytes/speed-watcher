@@ -11,7 +11,7 @@
         "ping": 50
     },
     "ispTwitter": "testISP",
-    "testFreq": 5,
+    "testFreq": 3600,
     "logFilePath": "results.csv",
     "errorFilePath": "errors.csv",
     "testAttempts": 10,
