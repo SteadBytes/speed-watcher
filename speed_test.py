@@ -221,6 +221,7 @@ class ErrorLogger(Logger):
             self.counter = 0
         print(errorData['error'])
         self.logCsv(errorData)
+        self.counter += 1
 
 
 if __name__ == "__main__":
