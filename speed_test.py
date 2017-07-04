@@ -51,7 +51,7 @@ class SpeedTestThread(threading.Thread):
         """ Main thread loop. Calls class methods to get and check speeds.
         """
         global exitFlag
-        prevError = False
+        prevError = False  # Used to track consecutive errors
         while exitFlag == 0:
             try:
                 # results = self.getSpeeds()
@@ -65,6 +65,7 @@ class SpeedTestThread(threading.Thread):
                 self.error_logger.logError(error)
                 prevError = True
 
+            # Reset ErrorLogger counter on successful execution without error
             if prevError:
                 self.error_logger.counter = 0
             time.sleep(config['testFreq'])
@@ -130,7 +131,7 @@ class TwitterThread(threading.Thread):
         """
         global exitFlag
         global tweetFlag
-        prevError = False
+        prevError = False  # Used to track consecutive errors
         while True:
             if exitFlag == 1:
                 break
@@ -146,6 +147,8 @@ class TwitterThread(threading.Thread):
                     self.error_logger.logError(error)
                     prevError = True
 
+                # Reset ErrorLogger counter on successful execution without
+                # error
                 if prevError:
                     self.error_logger.counter = 0
 
