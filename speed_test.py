@@ -12,8 +12,8 @@ import random
 config = json.load(open('config.json'))
 
 # Globals used for multiple thread control
-exitFlag = 0
-tweetFlag = 0
+exit_flag = False
+tweet_flag = False
 # Global queue for tweet data, shared between threads
 tweet_data_queue = queue.Queue()
 
@@ -50,9 +50,9 @@ class SpeedTestThread(threading.Thread):
     def run(self):
         """ Main thread loop. Calls class methods to get and check speeds.
         """
-        global exitFlag
+        global exit_flag
         prevError = False  # Used to track consecutive errors
-        while exitFlag == 0:
+        while not exit_flag:
             try:
                 results = self.getSpeeds()
                 self.checkSpeeds(results)
@@ -77,17 +77,18 @@ class SpeedTestThread(threading.Thread):
         """
         self.s.get_best_server()
         self.s.upload()
+
         self.s.download()
         return self.s.results.dict()
 
     def checkSpeeds(self, results):
         """ Checks speedtest results against threshold set in config.
 
-        If results are under threshold, adds data to queue and sets tweetFlag.
+        If results are under threshold, adds data to queue and sets tweet_flag.
         Args:
             results: Dictionary of speedtest results as returned by getSpeeds()
         """
-        global tweetFlag
+        global tweet_flag
         down = results['download']
         up = results['upload']
         ping = results['ping']
@@ -98,7 +99,7 @@ class SpeedTestThread(threading.Thread):
                   "Download: %s\n"
                   "Upload: %s\n"
                   "Ping: %s\n" % (down, up, ping))
-            tweetFlag = 1
+            tweet_flag = True
             tweet_data_queue.put(results)
             print("Results queued for tweet")
 
@@ -106,7 +107,7 @@ class SpeedTestThread(threading.Thread):
 class TwitterThread(threading.Thread):
     """ Thread class for handling tweets.
 
-        Will run until exit flag is true. When tweetflag is set, retrieves data
+        Will run until exit flag is true. When tweet_flag is set, retrieves data
         from queue and sends a tweet containing the data.
     """
 
@@ -125,16 +126,16 @@ class TwitterThread(threading.Thread):
         self.twitterAPI = tweepy.API(auth)
 
     def run(self):
-        """ Main thread loop. When tweetFlag set, generates and sends a tweet
+        """ Main thread loop. When tweet_flag set, generates and sends a tweet
             based on data from speedtests.
         """
-        global exitFlag
-        global tweetFlag
+        global exit_flag
+        global tweet_flag
         prevError = False  # Used to track consecutive errors
         while True:
-            if exitFlag == 1:
+            if exit_flag:
                 break
-            if tweetFlag == 1:
+            if tweet_flag:
                 tweet = self.getTweet()
                 try:
                     self.twitterAPI.update_status(tweet)
@@ -152,7 +153,7 @@ class TwitterThread(threading.Thread):
                     self.error_logger.counter = 0
 
                 if tweet_data_queue.qsize() == 0:
-                    tweetFlag = 0
+                    tweet_flag = False
 
     def getTweet(self):
         """ Creates a tweet using data from speedtests
@@ -208,14 +209,14 @@ class ErrorLogger(Logger):
     def logError(self, errorData):
         """ Writes error data to file.
 
-        If too many consecutive errors, will set exitFlag to stop execution.
+        If too many consecutive errors, will set exit_flag to stop execution.
 
         Args:
             errorData: Dictof error data with keys {"time","error","exception"}
         """
-        global exitFlag
+        global exit_flag
         if self.counter >= config['testAttempts']:
-            exitFlag = 1
+            exit_flag = True
             errorData['error'] = "10 Failed test attempts, exiting."
             self.counter = 0
         print(errorData['error'])
