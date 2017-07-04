@@ -51,6 +51,7 @@ class SpeedTestThread(threading.Thread):
         """ Main thread loop. Calls class methods to get and check speeds.
         """
         global exitFlag
+        prevError = False
         while exitFlag == 0:
             try:
                 # results = self.getSpeeds()
@@ -62,7 +63,10 @@ class SpeedTestThread(threading.Thread):
                          "error": "Unable to retrieve results",
                          "exception": e}
                 self.error_logger.logError(error)
+                prevError = True
 
+            if prevError:
+                self.error_logger.counter = 0
             time.sleep(config['testFreq'])
 
     def getSpeeds(self):
@@ -126,6 +130,7 @@ class TwitterThread(threading.Thread):
         """
         global exitFlag
         global tweetFlag
+        prevError = False
         while True:
             if exitFlag == 1:
                 break
@@ -139,9 +144,13 @@ class TwitterThread(threading.Thread):
                              "error": "Unable to send tweet",
                              "exception": e}
                     self.error_logger.logError(error)
+                    prevError = True
 
-                    if tweet_data_queue.qsize() == 0:
-                        tweetFlag = 0
+                if prevError:
+                    self.error_logger.counter = 0
+
+                if tweet_data_queue.qsize() == 0:
+                    tweetFlag = 0
 
     def getTweet(self):
         """ Creates a tweet using data from speedtests
