@@ -54,8 +54,7 @@ class SpeedTestThread(threading.Thread):
         prevError = False  # Used to track consecutive errors
         while exitFlag == 0:
             try:
-                # results = self.getSpeeds()
-                results = json.load(open('results.json'))
+                results = self.getSpeeds()
                 self.checkSpeeds(results)
                 self.dataLogger.logCsv(results)
             except Exception as e:
