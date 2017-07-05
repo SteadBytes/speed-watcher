@@ -11,10 +11,6 @@ import random
 # Load app config from file
 config = json.load(open('config.json'))
 
-# Globals used for multiple thread control
-exit_flag = False
-tweet_flag = False
-
 
 def main():
     """ App entry point
@@ -26,10 +22,7 @@ def main():
     tweet_data_queue = queue.Queue()
     test_thread = SpeedTestThread(
         1, "SpeedTestThread1", error_logger, tweet_data_queue)
-    tweet_thread = TwitterThread(
-        2, "TwitterThread1", error_logger, tweet_data_queue)
     test_thread.start()
-    tweet_thread.start()
 
 
 class SpeedTestThread(threading.Thread):
@@ -49,26 +42,30 @@ class SpeedTestThread(threading.Thread):
         self.targetSpeeds = config['internetSpeeds']
         self.dataLogger = ErrorLogger(config['logFilePath'])
         self.error_logger = error_logger
+        self.twitter_handler = TwitterHandler(
+            self.error_logger, self.tweet_data_queue)
+        self.exit_flag = False
 
     def run(self):
         """ Main thread loop. Calls class methods to get and check speeds.
         """
-        global exit_flag
         prevError = False  # Used to track consecutive errors
-        while not exit_flag:
+        while not self.exit_flag:
             try:
                 results = self.getSpeeds()
-                self.checkSpeeds(results)
-                self.dataLogger.logCsv(results)
             except Exception as e:
                 error = {"time": time.ctime(),
                          "error": "Unable to retrieve results",
                          "exception": e}
                 self.error_logger.logError(error)
                 prevError = True
+            self.checkSpeeds(results)
+            if self.dataLogger.logCsv(results):  # Returns exit_flag bool
+                self.exit_flag = True
 
             # Reset ErrorLogger counter on successful execution without error
             if prevError:
+                prevError = False
                 self.error_logger.counter = 0
             time.sleep(config['testFreq'])
         return
@@ -88,11 +85,11 @@ class SpeedTestThread(threading.Thread):
     def checkSpeeds(self, results):
         """ Checks speedtest results against threshold set in config.
 
-        If results are under threshold, adds data to queue and sets tweet_flag.
+        If results are under threshold, adds data to queue and calls
+        twitter_handler.sendTweet().
         Args:
             results: Dictionary of speedtest results as returned by getSpeeds()
         """
-        global tweet_flag
         down = results['download']
         up = results['upload']
         ping = results['ping']
@@ -103,22 +100,13 @@ class SpeedTestThread(threading.Thread):
                   "Download: %s\n"
                   "Upload: %s\n"
                   "Ping: %s\n" % (down, up, ping))
-            tweet_flag = True
             self.tweet_data_queue.put(results)
             print("Results queued for tweet")
+            self.twitter_handler.sendTweet()
 
 
-class TwitterThread(threading.Thread):
-    """ Thread class for handling tweets.
-
-        Will run until exit flag is true. When tweet_flag is set, retrieves data
-        from queue and sends a tweet containing the data.
-    """
-
-    def __init__(self, thread_id, name, error_logger, tweet_data_queue):
-        threading.Thread.__init__(self)
-        self.thread_id = thread_id
-        self.name = name
+class TwitterHandler(object):
+    def __init__(self, error_logger, tweet_data_queue):
         self.tweet_data_queue = tweet_data_queue
         self.error_logger = error_logger
 
@@ -130,34 +118,28 @@ class TwitterThread(threading.Thread):
                               self.apiData['accessTokenSecret'])
         self.twitterAPI = tweepy.API(auth)
 
-    def run(self):
-        """ Main thread loop. When tweet_flag set, generates and sends a tweet
-            based on data from speedtests.
+    def sendTweet(self):
+        """ Creates and sends tweets using data from queue
+
+        Will run until queue is empty in case of a backlog
         """
-        global exit_flag
-        global tweet_flag
-        prevError = False  # Used to track consecutive errors
-        while not exit_flag:
-            if tweet_flag:
-                tweet = self.getTweet()
-                try:
-                    self.twitterAPI.update_status(tweet)
-                    print("Tweet successful")
-                except Exception as e:
-                    error = {"time": time.ctime(),
-                             "error": "Unable to send tweet",
-                             "exception": e}
-                    self.error_logger.logError(error)
-                    prevError = True
+        prevError = False
+        while self.tweet_data_queue.qsize() > 0:
+            tweet = self.getTweet()
+            try:
+                self.twitterAPI.update_status(tweet)
+                print("Tweet successful")
+            except Exception as e:
+                error = {"time": time.ctime(),
+                         "error": "Unable to send tweet",
+                         "exception": e}
+                prevError = True
+                self.error_logger.logError(error)
 
-                # Reset ErrorLogger counter on successful execution without
-                # error
-                if prevError:
-                    self.error_logger.counter = 0
-
-                if tweet_data_queue.qsize() == 0:
-                    tweet_flag = False
-        return
+            if prevError:
+                self.error_logger.counter = 0
+                prevError = False
+        print("Tweet queue empty, new data needed")
 
     def getTweet(self):
         """ Creates a tweet using data from speedtests
@@ -217,15 +199,17 @@ class ErrorLogger(Logger):
 
         Args:
             errorData: Dictof error data with keys {"time","error","exception"}
+        Returns:
+            exit_flag: Bool, when true SpeedTestThread will terminate
         """
-        global exit_flag
         if self.counter >= config['testAttempts']:
-            exit_flag = True
             errorData['error'] = "10 Failed test attempts, exiting."
             self.counter = 0
+            exit_flag = True
         print(errorData['error'])
         self.logCsv(errorData)
         self.counter += 1
+        return exit_flag
 
 
 if __name__ == "__main__":
