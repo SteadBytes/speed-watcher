@@ -16,10 +16,8 @@
     "errorFilePath": "errors.csv",
     "testAttempts": 10,
     "tweetContent": [
-        "{0}! I'm meant to get 52mb/s down, 10mb/s up. I got {1}mb/s down, {2}mb/s up!",
-        "Hey {0}, think {1}mb/s down, {2}mb/s up instead of 52mb/s down, 10mb/s up is ok - it's not!",
-        "Don't break your promise {0}. {1}mb/s down, {2}mb/s up != 52mb/s down, 10mb/s up",
-        "{0}, how do I Netflix as expected with {1}mb/s down, {2}mb/s instead of 52mb/s down, 10mb/s up?"
+        "Automated speed-test got {1}Mb/s down, {2}Mb/s up, lower than {0}'s expected 52Mb/s down 10Mb/s up speed.",
+        "Expected 52Mb/s up 10 Mb/s down from {0}, automated test gave {1}Mb/s down, {2}Mb/s up."
     ]
 
 }
