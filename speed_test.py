@@ -14,18 +14,20 @@ config = json.load(open('config.json'))
 # Globals used for multiple thread control
 exit_flag = False
 tweet_flag = False
-# Global queue for tweet data, shared between threads
-tweet_data_queue = queue.Queue()
 
 
 def main():
     """ App entry point
 
-    Creates and starts required threads. Initialises error logging.
+    Creates and starts required threads. Initialises error logging and queues.
     """
     error_logger = ErrorLogger(config['errorFilePath'])
-    test_thread = SpeedTestThread(1, "SpeedTestThread1", error_logger)
-    tweet_thread = TwitterThread(2, "TwitterThread1", error_logger)
+    # Queue for tweet data, shared between threads
+    tweet_data_queue = queue.Queue()
+    test_thread = SpeedTestThread(
+        1, "SpeedTestThread1", error_logger, tweet_data_queue)
+    tweet_thread = TwitterThread(
+        2, "TwitterThread1", error_logger, tweet_data_queue)
     test_thread.start()
     tweet_thread.start()
 
@@ -38,10 +40,11 @@ class SpeedTestThread(threading.Thread):
     tweet thread if under threshold.
     """
 
-    def __init__(self, thread_id, name, error_logger):
+    def __init__(self, thread_id, name, error_logger, tweet_data_queue):
         threading.Thread.__init__(self)
         self.name = name
         self.thread_id = thread_id
+        self.tweet_data_queue = tweet_data_queue
         self.s = speedtest.Speedtest()
         self.targetSpeeds = config['internetSpeeds']
         self.dataLogger = ErrorLogger(config['logFilePath'])
@@ -68,6 +71,7 @@ class SpeedTestThread(threading.Thread):
             if prevError:
                 self.error_logger.counter = 0
             time.sleep(config['testFreq'])
+        return
 
     def getSpeeds(self):
         """ Tests upload and download speeds using speedtest-cli
@@ -100,7 +104,7 @@ class SpeedTestThread(threading.Thread):
                   "Upload: %s\n"
                   "Ping: %s\n" % (down, up, ping))
             tweet_flag = True
-            tweet_data_queue.put(results)
+            self.tweet_data_queue.put(results)
             print("Results queued for tweet")
 
 
@@ -111,10 +115,11 @@ class TwitterThread(threading.Thread):
         from queue and sends a tweet containing the data.
     """
 
-    def __init__(self, thread_id, name, error_logger):
+    def __init__(self, thread_id, name, error_logger, tweet_data_queue):
         threading.Thread.__init__(self)
         self.thread_id = thread_id
         self.name = name
+        self.tweet_data_queue = tweet_data_queue
         self.error_logger = error_logger
 
         # Set up tweepy with twitter API authentication
@@ -132,9 +137,7 @@ class TwitterThread(threading.Thread):
         global exit_flag
         global tweet_flag
         prevError = False  # Used to track consecutive errors
-        while True:
-            if exit_flag:
-                break
+        while not exit_flag:
             if tweet_flag:
                 tweet = self.getTweet()
                 try:
@@ -154,6 +157,7 @@ class TwitterThread(threading.Thread):
 
                 if tweet_data_queue.qsize() == 0:
                     tweet_flag = False
+        return
 
     def getTweet(self):
         """ Creates a tweet using data from speedtests
@@ -164,7 +168,7 @@ class TwitterThread(threading.Thread):
         Returns:
             String: complete tweet ready to send.
         """
-        data = tweet_data_queue.get()
+        data = self.tweet_data_queue.get()
         down = round(data['download'] / (2**20), 2)
         up = round(data['upload'] / (2**20), 2)
         content = random.choice(config['tweetContent'])
