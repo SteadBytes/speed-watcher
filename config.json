@@ -10,10 +10,10 @@
         "download": 52,
         "ping": 50
     },
-    "ispTwitter": "testISP",
+    "ispTwitter": "",
     "testFreq": 3600,
-    "logFilePath": "results.csv",
-    "errorFilePath": "errors.csv",
+    "logFilePath": "logs/results.csv",
+    "errorFilePath": "logs/errors.csv",
     "testAttempts": 10,
     "tweetContent": [
         "Automated speed-test got {1}Mb/s down, {2}Mb/s up, lower than {0}'s expected 52Mb/s down 10Mb/s up speed.",
