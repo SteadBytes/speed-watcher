@@ -1,12 +1,11 @@
 import speedtest
 import json
 import time
-import csv
-import os
 import threading
 import queue
 import tweepy
 import random
+import app.loggers as loggers
 
 # Load app config from file
 config = json.load(open('config.json'))
@@ -17,7 +16,7 @@ def main():
 
     Creates and starts required threads. Initialises error logging and queues.
     """
-    error_logger = ErrorLogger(config['errorFilePath'])
+    error_logger = loggers.ErrorLogger(config['errorFilePath'])
     # Queue for tweet data, shared between threads
     tweet_data_queue = queue.Queue()
     test_thread = SpeedTestThread(
@@ -40,7 +39,7 @@ class SpeedTestThread(threading.Thread):
         self.tweet_data_queue = tweet_data_queue
         self.s = speedtest.Speedtest()
         self.targetSpeeds = config['internetSpeeds']
-        self.dataLogger = ErrorLogger(config['logFilePath'])
+        self.dataLogger = loggers.Logger(config['logFilePath'])
         self.error_logger = error_logger
         self.twitter_handler = TwitterHandler(
             self.error_logger, self.tweet_data_queue)
@@ -155,61 +154,6 @@ class TwitterHandler(object):
         up = round(data['upload'] / (2**20), 2)
         content = random.choice(config['tweetContent'])
         return content.format(config['ispTwitter'], down, up)
-
-
-class Logger(object):
-    """ Base logger class for logging data to CSV.
-    """
-
-    def __init__(self, filepath):
-        self.filepath = filepath
-
-    def logCsv(self, data):
-        """ Writes data to CSV file at self.filepath.
-
-        Each logger instance must always write the same data structure, i.e
-        the same dictionary but with different data. So that the headers within
-        the CSV file are correct.
-
-        Args:
-            data: Dictionary of data to log.
-        """
-        print("Logging ...")
-        with open(self.filepath, 'a') as f:
-            writer = csv.DictWriter(f, fieldnames=data.keys())
-            if os.stat(self.filepath).st_size == 0:
-                writer.writeheader()
-            writer.writerow(data)
-        print("Done -> '%s'" % self.filepath)
-
-
-class ErrorLogger(Logger):
-    """ Subclass of Logger specifically for logging errors.
-    """
-
-    def __init__(self, filepath):
-        Logger.__init__(self, filepath)
-        # Used to limit consecutive errors.
-        self.counter = 0
-
-    def logError(self, errorData):
-        """ Writes error data to file.
-
-        If too many consecutive errors, will set exit_flag to stop execution.
-
-        Args:
-            errorData: Dictof error data with keys {"time","error","exception"}
-        Returns:
-            exit_flag: Bool, when true SpeedTestThread will terminate
-        """
-        if self.counter >= config['testAttempts']:
-            errorData['error'] = "10 Failed test attempts, exiting."
-            self.counter = 0
-            exit_flag = True
-        print(errorData['error'])
-        self.logCsv(errorData)
-        self.counter += 1
-        return exit_flag
 
 
 if __name__ == "__main__":
