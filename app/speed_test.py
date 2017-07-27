@@ -92,8 +92,8 @@ class SpeedTestThread(threading.Thread):
         down = results['download']
         up = results['upload']
         ping = results['ping']
-        if (down / (2**20) < self.targetSpeeds['download'] or
-            up / (2**20) < self.targetSpeeds['upload'] or
+        if (down / (10**6) < self.targetSpeeds['download'] or
+            up / (10**6) < self.targetSpeeds['upload'] or
                 ping > self.targetSpeeds['ping']):
             print("Unnaceptable speed results:\n"
                   "Download: %s\n"
@@ -150,8 +150,8 @@ class TwitterHandler(object):
             String: complete tweet ready to send.
         """
         data = self.tweet_data_queue.get()
-        down = round(data['download'] / (2**20), 2)
-        up = round(data['upload'] / (2**20), 2)
+        down = round(data['download'] / (10**6), 2)
+        up = round(data['upload'] / (10**6), 2)
         content = random.choice(config['tweetContent'])
         return content.format(config['ispTwitter'], down, up)
 
