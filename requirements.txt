@@ -14,5 +14,5 @@ requests-oauthlib==0.8.0
 six==1.10.0
 speedtest-cli==1.0.6
 tweepy==3.5.0
-urllib3==1.22
+urllib3==1.26.5
 Werkzeug==0.12.2
